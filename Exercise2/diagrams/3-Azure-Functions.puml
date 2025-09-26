@@ -1,0 +1,40 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define AzurePuml https://raw.githubusercontent.com/plantuml-stdlib/Azure-PlantUML/release/2-2/dist
+!includeurl AzurePuml/AzureCommon.puml
+!includeurl AzurePuml/Databases/AzureCosmosDb.puml
+!includeurl AzurePuml/Analytics/AzureEventHub.puml
+!includeurl AzurePuml/DevOps/AzureApplicationInsights.puml
+!includeurl AzurePuml/Security/AzureKeyVault.puml
+!includeurl AzurePuml/Web/AzureAPIManagement.puml
+!includeurl AzurePuml/Networking/AzureFrontDoor.puml
+!includeurl AzurePuml/Compute/AzureFunction.puml
+
+LAYOUT_WITH_LEGEND()
+Person(ops, "Operations Integrations", "Event producers")
+Person(consumer, "Downstream Airline Systems", "Reads Flight domain model")
+System_Boundary(sys, "Option 3 — Azure Functions (Recommended)") {
+AzureEventHub(eh, "Event Hubs", "8–16 partitions", "Ingress for flight events")
+AzureFunction(funcev, "Function App", "Azure Functions (Isolated .NET 8)", "EventHubTrigger processor")
+AzureFunction(funcapi, "Function App", "Azure Functions (Isolated .NET 8)", "HTTP GET /api/flights/{id}")
+AzureCosmosDb(cosmos, "Cosmos DB", "SQL API", "flights container (/id)")
+AzureKeyVault(kv, "Key Vault", "Secrets", "Function app settings via KV references")
+AzureApplicationInsights(logs, "Observability", "App Insights + Log Analytics", "Tracing & metrics")
+AzureAPIManagement(apim, "API Management", "")
+AzureFrontDoor(frontdoor, "Front Door / WAF", "")
+}
+System_Ext(reg, "Aircraft Registry API", "")
+Rel(ops, eh, "Publish")
+Rel(eh, funcev, "Trigger")
+Rel(funcev, reg, "HTTPS (Polly retries)")
+Rel(funcev, cosmos, "Upsert/Read")
+Rel(funcev, kv, "Key Vault refs")
+Rel(consumer, frontdoor, "Uses")
+Rel(frontdoor, apim, "Routes")
+Rel(funcapi, logs, "Telemetry")
+Rel(funcapi, cosmos, "Upsert/Read")
+Rel(funcapi, kv, "Key Vault refs")
+Rel(apim, funcapi, "HTTPS")
+Rel(funcev, logs, "Telemetry")
+SHOW_LEGEND()
+@enduml

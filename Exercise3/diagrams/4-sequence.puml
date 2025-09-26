@@ -1,0 +1,46 @@
+@startuml Sequence_Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Sequence.puml
+
+title Hotel Voucher Notification - Sequence Diagram
+
+participant "Operations Hub\nEvent Hub" as EventHub
+participant "Voucher Orchestrato" as Processor
+participant "Status Checker" as FlightService
+participant "Flight Availability Checker" as AvailabilityService
+participant "Passengers Fetcher" as PassengerService
+participant "Hotel Notification\nService" as NotificationService
+participant "AA App/SMS" as Notification
+
+note over EventHub: Flight cancellation occurs\n(maintenance/crew issues)
+
+EventHub -> Processor: Flight cancellation event\n(flight number, origin, date, reason)
+
+activate Processor
+
+Processor -> FlightService: Get flight status details\n(flight number, origin, date)
+FlightService --> Processor: Flight status with cancellation reason
+
+alt Cancellation reason is maintenance or crew
+    Processor -> AvailabilityService: Check for alternative nonstop flights\n(origin, destination, date)
+    AvailabilityService --> Processor: Available flights list
+    
+    alt No alternative nonstop flights available
+        Processor -> PassengerService: Get checked-in passengers\n(flight number, origin, date)
+        PassengerService --> Processor: List of checked-in passengers\nwith reservation codes
+        
+        loop For each checked-in passenger
+            Processor -> NotificationService: Send hotel voucher notification\n(reservation code, "hotel")
+            NotificationService -> Notification: Push notification or SMS\n(based on passenger preference)
+            Notification --> NotificationService: Delivery confirmation
+            NotificationService --> Processor: Notification sent confirmation
+        end
+    else Alternative flights available
+        note over Processor: Process terminated\n(passengers can be rebooked)
+    end
+else Weather cancellation
+    note over Processor: Process terminated\n(no hotel vouchers for weather)
+end
+
+deactivate Processor
+
+@enduml

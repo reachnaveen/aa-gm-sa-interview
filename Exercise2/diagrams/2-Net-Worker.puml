@@ -1,0 +1,37 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define AzurePuml https://raw.githubusercontent.com/plantuml-stdlib/Azure-PlantUML/release/2-2/dist
+!includeurl AzurePuml/AzureCommon.puml
+!includeurl AzurePuml/Compute/AzureAppService.puml
+!includeurl AzurePuml/Databases/AzureCosmosDb.puml
+!includeurl AzurePuml/Analytics/AzureEventHub.puml
+!includeurl AzurePuml/DevOps/AzureApplicationInsights.puml
+!includeurl AzurePuml/Security/AzureKeyVault.puml
+!includeurl AzurePuml/Web/AzureAPIManagement.puml
+!includeurl AzurePuml/Networking/AzureFrontDoor.puml
+
+LAYOUT_WITH_LEGEND()
+Person(ops, "Operations Integrations", "Event producers")
+Person(consumer, "Downstream Airline Systems", "Reads Flight domain model")
+System_Boundary(sys, "Option 2 — Custom .NET Worker on App Service") {
+AzureEventHub(eh, "Event Hubs", "8–16 partitions", "Ingress for flight events")
+AzureAppService(app, "Flight Service", ".NET 8 Worker + Web API", "Background worker consumes EH; REST exposes GET /flights/{id}")
+AzureCosmosDb(cosmos, "Cosmos DB", "SQL API", "flights container (/id)")
+AzureApplicationInsights(logs, "Observability", "App Insights / OpenTelemetry", "Tracing & metrics")
+AzureKeyVault(kv, "Key Vault", "Secrets", "App secrets & certs")
+AzureFrontDoor(frontdoor, "Front Door / WAF", "")
+AzureAPIManagement(apim, "API Management", "")
+}
+System_Ext(reg, "Aircraft Registry API", "")
+
+Rel(ops, eh, "Publish")
+Rel(eh, app, "Background consumer")
+Rel(app, reg, "HTTPS")
+Rel(app, cosmos, "Upsert/Read")
+Rel(app, kv, "Get secrets")
+Rel(consumer, frontdoor, "Uses")
+Rel(frontdoor, apim, "Routes")
+Rel(apim, app, "HTTPS (REST API)")
+Rel(app, logs, "Telemetry")
+SHOW_LEGEND()
+@enduml

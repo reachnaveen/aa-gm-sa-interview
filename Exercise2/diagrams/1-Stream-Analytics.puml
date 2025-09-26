@@ -1,0 +1,46 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define AzurePuml https://raw.githubusercontent.com/plantuml-stdlib/Azure-PlantUML/release/2-2/dist
+!includeurl AzurePuml/AzureCommon.puml
+!includeurl AzurePuml/Compute/AzureFunction.puml
+!includeurl AzurePuml/Databases/AzureCosmosDb.puml
+!includeurl AzurePuml/Analytics/AzureEventHub.puml
+!includeurl AzurePuml/Analytics/AzureStreamAnalyticsJob.puml
+!includeurl AzurePuml/DevOps/AzureApplicationInsights.puml
+!includeurl AzurePuml/Web/AzureAPIManagement.puml
+!includeurl AzurePuml/Networking/AzureFrontDoor.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(ops, "Operations Integrations", "Event producers")
+Person(consumer, "Airline Systems", "Reads Flight domain model")
+
+System_Boundary(sys, "Option 1 — Stream Analytics Centric") {
+  AzureEventHub(eh, "Event Hubs", "5-10 partitions", "Ingress for flight events")
+  AzureStreamAnalyticsJob(asa, "Stream Analytics Job", "ASA", "Transform/shape events → documents")
+  AzureCosmosDb(cosmos, "Cosmos DB", "SQL API", "flights container (/id)")
+  AzureFunction(funcapi, "HTTP API", "Azure Functions (Isolated)", "GET /api/flights/{id}")
+  AzureFunction(funcReg, "Registry Enricher", "Azure Functions (Change Feed)", "Enrich with aircraft registration")
+  AzureApplicationInsights(logs, "Observability", "App Insights + Log Analytics", "Tracing & metrics")
+  AzureAPIManagement(apim, "API Management", "")
+  AzureFrontDoor(frontdoor, "Front Door / WAF", "")
+}
+
+System_Ext(reg, "Aircraft Registry API", "")
+
+Rel(ops, eh, "Publish")
+Rel(eh, asa, "Consume (consumer group)")
+Rel(asa, cosmos, "Upsert docs")
+Rel(cosmos, funcReg, "Change Feed")
+Rel(funcReg, reg, "HTTPS")
+Rel(funcReg, cosmos, "Patch registration")
+Rel(consumer, frontdoor, "Uses")
+Rel(frontdoor, apim, "Routes")
+Rel(apim, funcapi, "HTTPS")
+Rel(funcapi, cosmos, "Read")
+Rel(funcapi, logs, "Telemetry")
+Rel(asa, logs, "Telemetry")
+Rel(funcReg, logs, "Telemetry")
+
+SHOW_LEGEND()
+@enduml

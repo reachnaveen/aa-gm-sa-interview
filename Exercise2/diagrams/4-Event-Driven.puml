@@ -1,0 +1,46 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define AzurePuml https://raw.githubusercontent.com/plantuml-stdlib/Azure-PlantUML/release/2-2/dist
+!includeurl AzurePuml/AzureCommon.puml
+!includeurl AzurePuml/Databases/AzureCosmosDb.puml
+!includeurl AzurePuml/Analytics/AzureEventHub.puml
+!includeurl AzurePuml/DevOps/AzureApplicationInsights.puml
+!includeurl AzurePuml/Security/AzureKeyVault.puml
+!includeurl AzurePuml/Web/AzureAPIManagement.puml
+!includeurl AzurePuml/Networking/AzureFrontDoor.puml
+!includeurl AzurePuml/Compute/AzureFunction.puml
+LAYOUT_WITH_LEGEND()
+Person(ops, "Operations Integrations", "Event producers")
+Person(consumer, "Downstream Airline Systems", "Reads Flight domain model")
+System_Boundary(sys, "Option 4 — Event-Driven Microservices (Recommended)") {
+AzureEventHub(eh, "Event Hubs", "Streams: flight.raw / flight.normalized / flight.enriched", "Backbone for events")
+AzureFunction(ing, "Ingestion Service", "Container (ACA/AKS)", "Validate/normalize; Materialize read model → Cosmos")
+AzureFunction(enr, "Enrichment Service", "Container (ACA/AKS)", "Call registry; publish flight.enriched")
+AzureFunction(api, "Query API Service", "Container (ACA/AKS)", "GET /flights/{id}")
+AzureCosmosDb(cosmos, "Cosmos DB", "SQL API", "flights container (/id)")
+AzureKeyVault(kv, "Key Vault", "Secrets", "Service identities & secrets")
+AzureApplicationInsights(obs, "Observability", "App Insights + Log Analytics", "Tracing & metrics")
+AzureAPIManagement(apim, "API Management", "")
+AzureFrontDoor(frontdoor, "Front Door / WAF", "")
+}
+System_Ext(reg, "Aircraft Registry API", "")
+Rel(ops, eh, "Publish flight.raw")
+Rel(eh, ing, "Consume flight.raw")
+Rel(ing, eh, "Publish flight.normalized")
+Rel(eh, enr, "Consume flight.normalized")
+Rel(enr, reg, "HTTPS")
+Rel(enr, eh, "Publish flight.enriched")
+Rel(api, cosmos, "Read")
+Rel(ing, cosmos, "Writes Updated Flight Model", "NoSQL API")
+Rel(enr, cosmos, "Writes Updated Flight Model", "NoSQL API")
+Rel(consumer, frontdoor, "Uses")
+Rel(frontdoor, apim, "Routes")
+Rel(apim, api, "HTTPS")
+Rel(ing, kv, "Get secrets"); 
+Rel(enr, kv, "Get secrets"); 
+Rel(api, kv, "Get secrets")
+Rel(ing, obs, "Telemetry"); 
+Rel(enr, obs, "Telemetry"); 
+Rel(api, obs, "Telemetry")
+SHOW_LEGEND()
+@enduml

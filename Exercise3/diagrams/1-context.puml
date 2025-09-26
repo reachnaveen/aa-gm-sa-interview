@@ -1,0 +1,28 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title System Context - AA Hotel Voucher Notification System
+
+Person(passenger, "Passenger", "Checked-in passenger affected by flight cancellation")
+Person(gate_agent, "Gate Agent", "Airport staff managing flight operations")
+
+System(hotel_notification_system, "Hotel Voucher Notification System", "Processes flight cancellations and sends hotel vouchers to eligible passengers")
+
+System_Ext(operations_hub, "Operations Hub", "Publishes flight status events and provides flight information")
+System_Ext(notification_hub, "Notification Hub", "Handles push notifications to AA app and SMS")
+System_Ext(sabre_services, "Sabre Web Services", "Provides passenger and flight availability data")
+System_Ext(aa_app, "American Airlines App", "Mobile application for passengers")
+System_Ext(sms_service, "SMS Service", "Text messaging service")
+System_Ext(gate_applications, "Gate Applications", "Front-line applications used by gate agents")
+
+Rel(operations_hub, hotel_notification_system, "Publishes flight cancellation events")
+Rel(hotel_notification_system, sabre_services, "Retrieves checked-in passengers and flight availability")
+Rel(hotel_notification_system, notification_hub, "Sends hotel voucher notifications")
+Rel(notification_hub, aa_app, "Sends push notifications")
+Rel(notification_hub, sms_service, "Sends SMS messages")
+Rel(aa_app, passenger, "Receives hotel voucher notification")
+Rel(sms_service, passenger, "Receives SMS notification")
+Rel(gate_agent, gate_applications, "Monitors flight operations")
+Rel(gate_applications, operations_hub, "Integrates with for flight status")
+
+@enduml
