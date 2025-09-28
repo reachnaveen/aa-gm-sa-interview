@@ -60,12 +60,12 @@ Managed identities for service authentication
 Network segmentation with NSGs
 
 #### Reliability:
-Event-driven architecture with Service Bus
+Event-driven architecture with Event Bus
 Retry mechanisms for failed notifications
 Comprehensive audit logging
 Multi-zone deployment for high availability
 
 #### Scalability:
 Serverless Functions that auto-scale
-Service Bus for reliable message processing
+Event Bus for reliable message processing
 Cosmos DB for global distribution
