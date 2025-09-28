@@ -1,0 +1,41 @@
+@startuml Container_Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Container Diagram - Hotel Voucher Notification System
+
+
+System_Boundary(hotel_system, "Hotel Voucher Notification System") {
+    Container(event_ingestion, "Event Ingestion Service", "Azure Event Hubs", "Receives flight cancellation events from Operations Hub")
+    Container(event_processor, "Voucher Orchestration", "Azure Logic App", "Processes flight cancellation events and orchestrates workflow")
+    Container(flight_service_client, "Flight Service Client", "C# Service", "Interfaces with external flight status and availability services")
+    Container(passenger_service_client, "Passenger Service Client", "C# Service", "Retrieves checked-in passenger data from Sabre")
+    Container(notification_client, "Notification Client", "C# Service", "Sends hotel voucher notifications via Notification Hub")
+    Container(api_gateway_internal, "API API Management", "Azure Gateway", "Manages external API calls with security and throttling")
+    ContainerDb(state_store, "State Store", "Azure Cosmos DB", "Stores processing state and audit trail")
+    Container(config_store, "Configuration Store", "Azure App Configuration", "Manages application settings and feature flags")
+}
+
+System_Ext(operations_hub, "Operations Hub", "Flight Status Event Hub and Services")
+System_Ext(sabre_services, "Sabre Web Services", "Passenger and Flight Availability Services")
+System_Ext(notification_hub, "Notification Hub", "Hotel/Meal/Transportation Notification Service")
+
+' Main flow
+Rel(operations_hub, event_ingestion, "Publishes flight events", "Event Hub Protocol")
+Rel(event_ingestion, event_processor, "Triggers processing", "Azure Functions trigger")
+Rel(event_processor, flight_service_client, "Get flight details", "Internal API")
+Rel(event_processor, passenger_service_client, "Get checked-in passengers", "Internal API")
+Rel(event_processor, notification_client, "Send notifications", "Internal API")
+
+' External integrations
+Rel(flight_service_client, api_gateway_internal, "External API calls", "HTTPS")
+Rel(passenger_service_client, api_gateway_internal, "External API calls", "HTTPS")
+Rel(notification_client, api_gateway_internal, "External API calls", "HTTPS")
+
+Rel(api_gateway_internal, sabre_services, "Passenger & availability requests", "HTTPS/REST")
+Rel(api_gateway_internal, notification_hub, "Notification requests", "HTTPS/REST")
+
+' Data and configuration
+Rel(event_processor, state_store, "Read/Write processing state", "CosmosDB API")
+Rel(event_processor, config_store, "Read configuration", "REST API")
+
+@enduml

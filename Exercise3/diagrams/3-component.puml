@@ -1,0 +1,31 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Component Diagram (C3) for Voucher Processor Function
+
+Container_Boundary(voucher_function, "Voucher Processor (Azure Function App)") {
+    
+    Component(orchestrator, "Voucher Orchestrator", "Azure Logic App", "Manages the execution order and state of the workflow.")
+    Component(status_checker, "Status Checker", "Function Activity", "Calls the Flight Status Service to validate reason (Crew/Maintenance).")
+    Component(availability_checker, "Availability Checker", "Function Activity", "Calls the Flight Availability Service to ensure no more nonstop flights exist.")
+    Component(passenger_fetcher, "Passenger Fetcher", "Function Activity", "Calls the Passengers Checked-in Service to get the list of checked-in passengers.")
+    Component(notifier, "Notifier", "Function Activity", "Calls the Notification Service for each eligible passenger.")
+
+    Rel(orchestrator, status_checker, "Calls")
+    Rel(orchestrator, availability_checker, "Calls")
+    Rel(orchestrator, passenger_fetcher, "Calls")
+    Rel(orchestrator, notifier, "Calls for each passenger")
+}
+
+' External Dependencies of the Components
+System_Ext(status_api, "Flight Status Service")
+System_Ext(availability_api, "Flight Availability Service")
+System_Ext(checked_in_api, "Passengers Checked-in Service")
+System_Ext(notification_api, "Notification Service")
+
+Rel_R(status_checker, status_api, "Calls to check reason", "HTTPS/JSON")
+Rel_R(availability_checker, availability_api, "Calls to check availability", "HTTPS/JSON")
+Rel_R(passenger_fetcher, checked_in_api, "Calls to fetch passenger list", "HTTPS/JSON")
+Rel_R(notifier, notification_api, "Calls to send voucher", "HTTPS/JSON")
+
+@enduml

@@ -1,0 +1,100 @@
+@startuml Deployment_Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+
+title Deployment Architecture - Azure Infrastructure
+
+Deployment_Node(internet, "Internet", "External Network") {
+    Deployment_Node(external_systems, "External Systems") {
+    Deployment_Node(Application, "Sabre Systems") {
+        Container(status_api, "Flight Status Service")
+        Container(availability_api, "Flight Availability Service")
+        Container(checked_in_api, "Passengers Checked-in Service")
+    }
+        Container(operations_hub_ext, "Operations Hub", "Event Hub & Services")
+        Container(notification_api, "Notification Service")
+    }
+}
+
+Deployment_Node(azure_cloud, "Microsoft Azure", "Cloud Platform") {
+    Deployment_Node(azure_security, "Security Perimeter") {
+        Container(waf, "Web Application Firewall", "Azure WAF", "Protects against web attacks")
+        Container(api_gateway, "API Management", "Azure APIM", "API gateway, throttling, security")
+    }
+    
+    Deployment_Node(vnet, "Virtual Network", "Isolated Network") {
+        Deployment_Node(app_subnet, "Application Subnet") {
+            Deployment_Node(aks_cluster, "Azure Kubernetes Service", "Container Orchestration") {
+                Container(hotel_processor, "Hotel Voucher Processor", "C# .NET Core", "Main processing logic")
+                Container(api_service, "API Service", "C# .NET Core", "REST API endpoints")
+                Container(status_checker, "Status Checker", "Durable Function Activity", "Calls the Flight Status Service to validate reason (Crew/Maintenance).")
+                Container(availability_checker, "Availability Checker", "Durable Function Activity", "Calls the Flight Availability Service to ensure no more nonstop flights exist.")
+                Container(passenger_fetcher, "Passenger Fetcher", "Durable Function Activity", "Calls the Passengers Checked-in Service to get the list of checked-in passengers.")
+                Container(notifier, "Notifier", "Durable Function Activity", "Calls the Notification Service for each eligible passenger.")
+
+            }
+        }
+        
+        Deployment_Node(data_subnet, "Data Subnet") {
+            ContainerDb(cosmos_db, "Cosmos DB", "NoSQL Database", "Event processing state and audit logs")
+            Container(key_vault, "Azure Key Vault", "Secrets Management", "API keys and certificates")
+        }
+        
+        Deployment_Node(integration_subnet, "Integration Subnet") {
+            Container(event_hub, "Azure Event Hubs", "Event Streaming", "Flight status events intake")
+        }
+    }
+    
+    Deployment_Node(monitoring, "Monitoring & Logging") {
+        Container(app_insights, "Application Insights", "APM", "Application monitoring and telemetry")
+        Container(log_analytics, "Log Analytics", "Centralized Logging", "Centralized log storage and analysis")
+        Container(azure_monitor, "Azure Monitor", "Infrastructure Monitoring", "Infrastructure and performance monitoring")
+    }
+}
+
+' Relationships
+Rel(operations_hub_ext, event_hub, "HTTPS", "Flight events")
+Rel(waf, api_gateway, "Filtered traffic")
+Rel(api_gateway, api_service, "Authenticated requests")
+Rel(event_hub, hotel_processor, "Event events")
+
+
+Rel(api_service, sabre_ext, "HTTPS/REST", "Passenger data")
+Rel(api_service, notification_hub_ext, "HTTPS/REST", "Send notifications")
+
+Rel(hotel_processor, cosmos_db, "Process state & audit")
+Rel(hotel_processor, key_vault, "Retrieve secrets")
+Rel(hotel_processor, status_checker, "Call")
+Rel(hotel_processor, availability_checker, "Call")
+Rel(hotel_processor, passenger_fetcher, "RCall")
+Rel(hotel_processor, notifier, "Call")
+Rel(status_checker, status_api, "Call")
+Rel(availability_checker, availability_api, "Call")
+Rel(passenger_fetcher, checked_in_api, "Call")
+
+
+' Monitoring relationships
+Rel(hotel_processor, app_insights, "Telemetry")
+Rel(api_service, app_insights, "Telemetry")
+Rel(aks_cluster, azure_monitor, "Infrastructure metrics")
+Rel(cosmos_db, log_analytics, "Database logs")
+
+note right of azure_security
+  **Security Features:**
+  - WAF protection against OWASP Top 10
+  - API Management with OAuth 2.0/JWT
+  - Network Security Groups (NSGs)
+  - Private endpoints for PaaS services
+  - Managed identities for service authentication
+  - Key Vault for secrets management
+end note
+
+note left of monitoring
+  **Monitoring & Alerting:**
+  - Application performance monitoring
+  - Custom metrics and alerts
+  - Distributed tracing
+  - Log aggregation and analysis
+  - SLA monitoring dashboards
+end note
+
+@enduml

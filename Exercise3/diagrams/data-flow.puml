@@ -1,0 +1,71 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define AzurePuml https://raw.githubusercontent.com/plantuml-stdlib/Azure-PlantUML/release/2-2/dist
+!includeurl AzurePuml/AzureCommon.puml
+!includeurl AzurePuml/Databases/AzureCosmosDb.puml
+!includeurl AzurePuml/Analytics/AzureEventHub.puml
+!includeurl AzurePuml/DevOps/AzureApplicationInsights.puml
+!includeurl AzurePuml/Security/AzureKeyVault.puml
+!includeurl AzurePuml/Web/AzureAPIManagement.puml
+!includeurl AzurePuml/Networking/AzureFrontDoor.puml
+!includeurl AzurePuml/Compute/AzureFunction.puml
+!includeurl AzurePuml/Integration/AzureLogicApps.puml
+!includeurl AzurePuml/Compute/AzureAppService.puml
+!includeurl AzurePuml/Networking/AzureApplicationGateway.puml
+LAYOUT_WITH_LEGEND()
+
+title C2 – Hotel Voucher Orchestrator: Containers (Azure)
+
+Person(agent, "Gate Agent")
+System_Boundary(aa, "AA – Azure Subscription") {
+
+  Container_Boundary(orchestrator, "Hotel Voucher Orchestrator") {
+    AzureFunction(fnProc, "Event Processor", "Azure Functions", "Consumes cancellation events; filters reason=Maintenance/Crew")
+    AzureLogicApps(flow, "Voucher Orchestration", "Logic Apps", "Coordinates availability check, passenger lookup, and notifications")
+    AzureFunction(rules, "Rules Engine", "Azure Functions", "Ensures 'no more same-day nonstop' rule")
+    AzureFunction(status_checker, "Status Checker", "Function Activity", "Calls the Flight Status Service to validate reason (Crew/Maintenance).")
+    AzureFunction(availability_checker, "Availability Checker", "Function Activity", "Calls the Flight Availability Service to ensure no more nonstop flights exist.")
+    AzureFunction(passenger_fetcher, "Passenger Fetcher", "Function Activity", "Calls the Passengers Checked-in Service to get the list of checked-in passengers.")
+    AzureFunction(notifier, "Notifier", "Function Activity", "Calls the Notification Service for each eligible passenger.")
+    
+    AzureCosmosDb(db, "Voucher Store", "Azure Cosmos DB", "State, idempotency, audit, outbox")
+    AzureAPIManagement(api, "API API Management", "Azure Gateway", "AuthN/Z, policy, routing, private access")
+    AzureKeyVault(kv, "Secrets", "Azure Key Vault", "Secrets/Certs; accessed via Managed Identity")
+    AzureApplicationInsights(obs, "Observability", "Azure Monitor + App Insights", "Traces, logs, metrics, alerts")
+    AzureFrontDoor(frontdoor, "Front Door / WAF", "")
+    AzureAppService(gateapps, "Gate Apps", "Web/Mobile", "Agent-facing front-line tools")
+
+    Rel(flow, status_checker, "Calls")
+    Rel(flow, availability_checker, "Calls")
+    Rel(flow, passenger_fetcher, "Calls")
+    Rel(flow, notifier, "Calls for each passenger")
+    Rel(frontdoor, gateapps, "Routes")
+  }
+}
+
+System_Ext(opsHubEH, "Operations Hub – Event Hub", "Flight status events")
+System_Ext(status_api, "Flight Status Service")
+System_Ext(availability_api, "Flight Availability Service")
+System_Ext(checked_in_api, "Passengers Checked-in Service")
+System_Ext(notification_api, "Notification Service")
+
+Rel_R(status_checker, status_api, "Calls to check reason", "HTTPS/JSON")
+Rel_R(availability_checker, availability_api, "Calls to check availability", "HTTPS/JSON")
+Rel_R(passenger_fetcher, checked_in_api, "Calls to fetch passenger list", "HTTPS/JSON")
+Rel_R(notifier, notification_api, "Calls to send voucher", "HTTPS/JSON")
+
+Rel(opsHubEH, fnProc, "Flight cancelled events", "Event Hub")
+Rel(fnProc, flow, "Start workflow with cancellation details")
+Rel(flow, rules, "Evaluate voucher criteria")
+Rel(flow, db, "Persist state/audit/outbox")
+Rel(flow, kv, "Retrieve secrets/credentials", "Managed Identity")
+Rel(flow, obs, "Telemetry: traces/metrics/logs")
+Rel(agent, frontdoor, "Operate / Monitor")
+Rel(gateapps, api, "Ops endpoints / dashboards", "HTTPS (Private/Restricted)")
+Rel(api, flow, "Routing & policy enforcement")
+Rel(status_checker, obs, "Telemetry: traces/metrics/logs")
+Rel(availability_checker, obs, "Telemetry: traces/metrics/logs")
+Rel(passenger_fetcher, obs, "Telemetry: traces/metrics/logs")
+Rel(notifier, obs, "Telemetry: traces/metrics/logs")
+
+@enduml
