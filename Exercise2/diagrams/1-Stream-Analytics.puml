@@ -33,6 +33,7 @@ Rel(eh, asa, "Consume (consumer group)")
 Rel(asa, cosmos, "Upsert docs")
 Rel(cosmos, funcReg, "Change Feed")
 Rel(funcReg, reg, "HTTPS")
+Rel(asa, reg, "Cannot call (ASA Limitation - Missing Key Requirement)") : <color:red>❌</color>
 Rel(funcReg, cosmos, "Patch registration")
 Rel(consumer, frontdoor, "Uses")
 Rel(frontdoor, apim, "Routes")
