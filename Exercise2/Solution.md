@@ -81,4 +81,4 @@ Here is an analysis of the four proposed solutions, with pros and cons for each.
 | Operational Overhead | Low      | Medium   | Medium   | High      |
 
 ### Final Recommendation: Option 4 (Event-Driven Microservices)
-Given the high availability requirements and the need for scalability at an airline level, Option 4 provides the best long-term solution despite higher initial complexity.
+Despite increased initial complexity, Option 4 delivers the scalability and availability essential for airline operations. The architecture supports multi-region deployment while leveraging Cosmos DB's built-in high availability, making it the preferred long-term investment.Given the high availability requirements and the need for scalability at an airline level, Option 4 provides the best long-term solution despite higher initial complexity. We can also deploy this application on Multi-region and CosmosDB ny default provide high availability 
