@@ -3,7 +3,6 @@
 
 title Container Diagram - Hotel Voucher Notification System
 
-Person(gate_agent, "Gate Agent", "Airport staff managing flight operations")
 
 System_Boundary(hotel_system, "Hotel Voucher Notification System") {
     Container(event_ingestion, "Event Ingestion Service", "Azure Event Hubs", "Receives flight cancellation events from Operations Hub")

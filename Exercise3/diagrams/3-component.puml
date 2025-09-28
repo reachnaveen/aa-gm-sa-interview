@@ -5,12 +5,11 @@ title Component Diagram (C3) for Voucher Processor Function
 
 Container_Boundary(voucher_function, "Voucher Processor (Azure Function App)") {
     
-    Component(orchestrator, "Voucher Orchestrator", "Durable Function Orchestrator", "Manages the execution order and state of the workflow.")
-
-    Component(status_checker, "Status Checker", "Durable Function Activity", "Calls the Flight Status Service to validate reason (Crew/Maintenance).")
-    Component(availability_checker, "Availability Checker", "Durable Function Activity", "Calls the Flight Availability Service to ensure no more nonstop flights exist.")
-    Component(passenger_fetcher, "Passenger Fetcher", "Durable Function Activity", "Calls the Passengers Checked-in Service to get the list of checked-in passengers.")
-    Component(notifier, "Notifier", "Durable Function Activity", "Calls the Notification Service for each eligible passenger.")
+    Component(orchestrator, "Voucher Orchestrator", "Azure Logic App", "Manages the execution order and state of the workflow.")
+    Component(status_checker, "Status Checker", "Function Activity", "Calls the Flight Status Service to validate reason (Crew/Maintenance).")
+    Component(availability_checker, "Availability Checker", "Function Activity", "Calls the Flight Availability Service to ensure no more nonstop flights exist.")
+    Component(passenger_fetcher, "Passenger Fetcher", "Function Activity", "Calls the Passengers Checked-in Service to get the list of checked-in passengers.")
+    Component(notifier, "Notifier", "Function Activity", "Calls the Notification Service for each eligible passenger.")
 
     Rel(orchestrator, status_checker, "Calls")
     Rel(orchestrator, availability_checker, "Calls")
